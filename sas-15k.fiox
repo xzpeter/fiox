@@ -1,0 +1,16 @@
+; $iodepth = [1 4 16 64]
+; $bs = [512 8k 64k 1M]
+; $rw = [randread randwrite]
+
+[global]
+rw=$rw
+direct=1
+ioengine=libaio
+iodepth=$iodepth
+numjobs=1
+bs=4k
+
+[sdb]
+#filename=/dev/sdb
+size=1M
+directory=/tmp/
