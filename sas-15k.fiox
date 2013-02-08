@@ -11,6 +11,5 @@ numjobs=1
 bs=4k
 
 [sdb]
-#filename=/dev/sdb
-size=1M
-directory=/tmp/
+filename=/dev/sdb
+size=1G
