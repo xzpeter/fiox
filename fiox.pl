@@ -168,7 +168,7 @@ sub _date () {
 sub check_fio () {
 	my @res = `fio --version`;
 	die "You need to install fio first! " if $?;
-	die "You have to update fio to latest (2.0+)" if $res[0] =~ /1[\d.]$/;
+	die "You have to update fio to latest (2.0+)" if ! $res[0] =~ /fio-2.*/;
 }
 
 sub disp ($@) {
