@@ -5,8 +5,6 @@ needed libraries:
 Please install these libraries first. I would like to suggest to use
 'cpanm' to do it. :)
 
---------------------------------------
-
 Usage: ./fiox.pl fiox_conf_file
 
 fiox_conf_file:     configure file (*.fiox)
