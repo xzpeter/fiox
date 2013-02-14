@@ -166,8 +166,9 @@ sub _date () {
 }
 
 sub check_fio () {
-	`which fio`;
+	my @res = `fio --version`;
 	die "You need to install fio first! " if $?;
+	die "You have to update fio to latest (2.0+)" if $res[0] =~ /1[\d.]$/;
 }
 
 sub disp ($@) {
@@ -222,7 +223,7 @@ do {
 	close $conf_fd;
 	
 	my $log_file = "$casedir/result_${hash_str}.txt";
-	run "fio --output $log_file $conf_fname";
+	run "fio --output-format=json --output $log_file $conf_fname";
 } while ($mconf->next());
 
 disp "Benchmark all done!", "red bold";
