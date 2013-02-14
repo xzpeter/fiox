@@ -4,13 +4,43 @@ use strict;
 use warnings;
 use FioParser;
 use Data::Dumper;
+use JSON::Parse qw/json_to_perl/;
+use constant DEF_FIO_PARSE_FORMAT => "json";
 
-sub parse_dir($) {
+sub _parse_normal_output ($) {
+	return FioParser::parse_output(shift);
+}
+
+sub _parse_json_output ($) {
+	my $filename = shift;
+	open my $file, "<$filename" or die "Cannot open file $filename: $!";
+	my @vals = <$file>;
+	close $file;
+	my $hash = json_to_perl(join "", @vals);
+	my $job = $hash->{jobs}[0];
+	my $res = {};
+	$res->{$_} = $job->{$_} foreach (qw/usr_cpu sys_cpu error/);
+	foreach my $dir (qw/read write/) {
+		$res->{"${dir}_".$_} = $job->{$dir}{$_} foreach (qw/bw iops io_bytes runtime/);
+		$res->{"${dir}_".$_} = $job->{$dir}{$_}{mean} foreach (qw/slat clat/);
+	}
+	return $res;
+}
+
+my %format_list = (
+	"normal" => \&_parse_normal_output,
+	"json" => \&_parse_json_output,
+);
+
+sub parse_dir($@) {
 	# this dir should be the root dir of fiox results
-	my $dir = shift;
+	my ($dir, $format) = @_;
 	my @subdirs = `cd $dir; ls -l | grep ^d | awk '{print \$9}'`;
 	my @vars = ();
 	my @results = ();
+
+	$format = DEF_FIO_PARSE_FORMAT if not defined $format;
+	my $output_parser = $format_list{lc $format} or die "Don't support format: $format!";
 
 	my $cnt = 0;
 	# open summary data file for write
@@ -22,11 +52,10 @@ sub parse_dir($) {
 		chomp;
 		my %pairs = grep /^.+$/, split /_+/;
 
-		# get output file name
+		# get output file name, and benchmark results
 		my $output_dir = $dir."/".$_;
 		my $output_file = $output_dir."/".`cd $output_dir; ls result*.txt`;
-		# get result list using FioParser
-		my $res = FioParser::parse_output($output_file);
+		my $res = &$output_parser($output_file);
 
 		# if the first one, generate header of csv
 		if (not @vars) {
@@ -42,15 +71,16 @@ sub parse_dir($) {
 		# print "dir:$_,cnt:$cnt,".Dumper($res)."\n"; $cnt++;
 		# generate shortened data string
 		my $datastr = join ",", map {$pairs{$_}} @vars;
-		$datastr .= ",,";
-		$datastr .= join ",", map {$res->{$_}} @results;
+		$datastr .= ",," . join ",", map {$res->{$_}} @results;
 		print $out $datastr."\n";
 	}
 	close $out;
 }
 
 sub test () {
-	parse_dir("/home/xz/org/result/result_sas-15k_130208_201321");
+	# my $res = _parse_json_output("/home/xz/git-repo/fiox/result_sas-15k_130214_230234/_iodepth_16_bs_1M/result__iodepth_16_bs_1M.txt");
+	# print Dumper $res;
+	parse_dir("/home/xz/git-repo/fiox/result_sas-15k_130214_230234");
 }
 
 1;
